@@ -28,7 +28,7 @@ const URL: &str = "https://api.devnet.solana.com";
 
 fn main() -> Result<(), Box<dyn Error>> {
     let rpc_client = RpcClient::new(URL);
-    let program_id = Pubkey::from_str("TODO: Deployed Hash for the solana program")?;
+    let program_id = Pubkey::from_str("9uFMuMSbt9BstJyGdKze84C7NB6oDCmLfKqtG7gzDcjU")?;
     let sender = create_keypair();
     println!("Sender/Payer: {:?}", sender.pubkey());
     
