@@ -10,7 +10,7 @@ use solana_sdk::{
 };
 
 // Instruction: Should be the same as in the program_solana
-#[derive(BorshSerialize, BorshDeserialize)]
+#[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub enum MintInstruction {
     Init { message: String },
 }
@@ -28,7 +28,7 @@ pub fn sleep_ms(ms: u64) {
 
 pub fn print_balance(tag: &str, rpc_client: &RpcClient, pk: &Pubkey) {
     if let Ok(balance) = rpc_client.get_balance(pk) {
-        println!("{}: balance: {}", tag, balance);
+        println!("{}: balance: {} SOL", tag, lamports_to_sol(balance));
     } else {
         println!("print_balance: Failed to get balance of {:?}", pk);
     }

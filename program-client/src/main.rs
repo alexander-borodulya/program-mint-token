@@ -30,6 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let rpc_client = RpcClient::new(URL);
     let program_id = Pubkey::from_str("9uFMuMSbt9BstJyGdKze84C7NB6oDCmLfKqtG7gzDcjU")?;
     let sender = create_keypair();
+    println!("Running program {}", program_id);
     println!("Sender/Payer: {:?}", sender.pubkey());
     
     //
@@ -38,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Check SOL ammout
     let sender_balance = rpc_client.get_balance(&sender.pubkey())?;
-    println!("Sender/Payer balance (1): {:?}", lamports_to_sol(sender_balance));
+    println!("Sender/Payer balance (1): {:?} SOL", lamports_to_sol(sender_balance));
 
     let airdrop_sol_amount = 1;
     let airdrop_lamports_amount = airdrop_sol_amount * LAMPORTS_PER_SOL;
@@ -66,8 +67,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Airdrop sig: {:?}", airdrop_sig);
 
     let mut airdrop_tx_attempt_count = 1;
+    let mut sig_status_delay = 250;
     loop {
-        println!("Airdrop about to confirm, atempt {}...", airdrop_tx_attempt_count);
+        println!("Airdrop about to confirm, atempt {}, delay {} ms...", airdrop_tx_attempt_count, sig_status_delay);
 
         let status = loop {
             if let Ok(statuses) = rpc_client.get_signature_statuses(&[airdrop_sig]) {
@@ -75,7 +77,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                     break status;
                 }
             }
-            sleep_ms(250);
         };
 
         match status.confirmation_status.unwrap() {
@@ -91,11 +92,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
         airdrop_tx_attempt_count += 1;
+        sleep_ms(sig_status_delay);
+        sig_status_delay *= 2;
     }
 
     // Check SOL ammout
     let sender_balance = rpc_client.get_balance(&sender.pubkey())?;
-    println!("Sender / Payer balance (2): {:?}", lamports_to_sol(sender_balance));
+    println!("Sender / Payer balance (2): {:?} SOL", lamports_to_sol(sender_balance));
 
     //
     // Execute program {
@@ -106,12 +109,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mint_ix_init = MintInstruction::Init { 
         message: "Message from program-client".to_owned()
     };
-
+    println!("Instruction created: {:?}", mint_ix_init);
+    
     let ix = Instruction::new_with_borsh(
         program_id, 
         &mint_ix_init, 
         vec![], 
     );
+    println!("Instruction serialized: {:?}", ix.program_id);
     
     let ix_vec = vec!(ix);
     
@@ -120,14 +125,20 @@ fn main() -> Result<(), Box<dyn Error>> {
         &ix_vec,
         Some(&sender.pubkey()),
     );
+    println!("Transaction created: tx.message.instructions.len: {:?}", tx.message.instructions.len());
     
     tx.sign(
         &[&sender], 
         latest_blockhash
     );
+    println!("Transaction signed: tx.signatures[0]: {:?}", tx.signatures[0]);
     
+    // Send transaction
+    println!("Transaction about to be sent: tx.signatures[0]: {:?}", tx.signatures[0]);
     let tx_sig = rpc_client.send_and_confirm_transaction(&tx).expect("Transaction failed");
-    println!("Transaction succeded: Signature: {:?}", tx_sig);
+    println!("Transaction send succeded:");
+    println!("            tx.signatures[0]: {:?}", tx.signatures[0]);
+    println!("            Signature: {:?}", tx_sig);
     
     Ok(())
 
